@@ -7,3 +7,7 @@ This repository contains the data and code necessary to replicate the analyses i
 ## A note on executing code
 
 All analyses can be replicated in a single step using the tar_make() function from the *targets* package. Specific outputs can then be examined using tar_read(*target-name-of-interest*).
+
+## Authors
+
+Sam Walmsley (sam.walmsley@dal.ca), Suchinta Arif, Hal Whitehead
