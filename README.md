@@ -9,4 +9,7 @@ All analyses can be replicated in a single step using the tar_make() function fr
 ## Authors
 
 Sam Walmsley, Suchinta Arif, Hal Whitehead
-Contact: sam.walmsley@dal.ca
+
+## Contact information
+
+sam.walmsley@dal.ca
