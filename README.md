@@ -6,7 +6,11 @@ All analyses can be replicated in a single step using the tar_make() function fr
 
 ## Worked examples
 
-Method 1. Lagged effects in temporally explicit causal models [https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-PanelModel_github.md] (#Link)
+Method 1. Cross lagged effects: [Link to Vignette](https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-PanelModel_github.md)
+
+Method 2. Continuous time methods: [Link to Vignette](https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-ODEs_github.md)
+
+Method 3. Instrumental Variables: [Link to Vignette](https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-InstrumentalVariables_github.md)
 
 
 ## Authors
