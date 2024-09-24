@@ -1,0 +1,172 @@
+---
+title: "Method 2. Continuous time method to identifying bidirectional effects"
+author: "Sam Walmsley, Suchinta Arif, Hal Whitehead" 
+bibliography: bibliography.json
+execute:
+  eval: true
+  message: false
+  warning: false
+format:
+  html:
+    self-contained: true
+---
+
+```{r, include=FALSE, echo=FALSE}
+# library(rbbt)
+# bbt_write_bib("./Vignettes/bibliography.json", bbt_detect_citations("./Vignettes/Vignette-ODEs.qmd"), overwrite = TRUE)
+```
+
+This example demonstrates how a model specified with ordinary differential equations can be used to infer bidirectional effects from simulated data. We use the classic lynx-hare predator-prey cycling as the case study for our simulation. This example is adapted from similar studies in @mcelreathStatisticalRethinking2Bayesian2020; @parkFitodeToolsOrdinary2022; @standevelopmentteamStanModelingLanguage2018.
+
+We begin by loading in key packages. 
+
+```{r}
+library(deSolve)
+library(dagitty)
+library(ggdag)
+library(fitode)
+library(ggplot2)
+library(patchwork)
+library(data.table)
+library(ggforce)
+```
+
+First we use the model to build a simulated dataset. This allows us to specify key parameters that we can attempt to recover by fitting an explanatory model to the resulting simulated data.
+
+```{r}
+
+# Define the ODE system
+  ode_system <- function(time, state, parameters) {
+    with(as.list(c(state, parameters)), {
+      dx <- a*X - b*X*Y
+      dy <- c*Y*X - d*Y
+      return(list(c(dx, dy)))
+    })
+  }
+  
+  # Simulated data (with added noise)
+  set.seed(123)
+  times <- seq(0, 50, by = 0.1)
+  true_parameters <- c(a = 1.1, b = 0.4, c = 0.1, d = 0.4)
+  state <- c(X = 1, Y = 1)
+  simulated_data <- ode(y = state, times = times, func = ode_system, parms = true_parameters)
+  simulated_data <- as.data.frame(simulated_data)  # Ensure data is a data.frame
+  simulated_data$X <- simulated_data$X + rnorm(nrow(simulated_data), sd = 1)
+  simulated_data$Y <- simulated_data$Y + rnorm(nrow(simulated_data), sd = 1)
+```
+
+Here we define the explanatory model.
+
+```{r}
+
+  lotka_model <- odemodel(
+    name="Lotka Volterra model",
+    model=list(
+      u ~ a * u - b * u * v,
+      v ~ c * u * v - d * v
+    ),
+    observation=list(
+      X ~ dpois(lambda=u),
+      Y ~ dpois(lambda=v)
+    ),
+    initial=list(
+      u ~ u0,
+      v ~ v0
+    ),
+    par=c("a", "b", "c", "d", "u0", "v0")
+  )
+```
+
+Next we specify the starting parameters and fit the model using MCMC in the *fitODE* package. Though beyond the scope of this article, we note that the identification of starting parameters can be a significant challenge.
+
+```{r}
+  harestart <- c(a = 0.5,
+                 b = 0.5,
+                 c = 0.5,
+                 d = 0.5,
+                 u0 = 1,
+                 v0 = 1)
+  
+
+  proposal.vcov <- matrix(0, 6, 6)
+  diag(proposal.vcov) <- c(1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4)
+
+  fitMCMC <- fitodeMCMC(lotka_model, data=simulated_data,
+                        start=harestart,
+                        proposal.vcov = proposal.vcov,
+                        tcol="time")
+```
+Next, we can examine the parameter estimates to see if we have recovered the simulated values. As shown below, all estimates are very close to the "true" inputs.
+
+```{r}
+fitMCMC
+```
+
+Finally, we plot the results for comparison.
+
+```{r}
+
+# Set up colors
+
+my_cols <- c('steelblue','red')
+  
+
+# Oversimplified DAG
+dag_text <- 'dag{
+A -> B;
+B -> A;
+}'
+  
+dag <- dagitty(dag_text)
+
+# Manually set the coordinates of the nodes
+coordinates(dag) <- list(
+  x = c(A = 1, B = 2),
+  y = c(A = 1, B = 1)
+)
+
+  
+p1 <- ggdag(dag) +
+  geom_dag_node(colour='white') +
+  geom_dag_edges(edge_color='white')+
+  geom_dag_edges_arc()+
+  geom_dag_text(
+    label=c('Prey','Predator'),
+    parse=FALSE,
+    size=c(2,2),
+    colour = c('white','white')
+  ) +
+  annotate('text', x=1, y=1,label='Prey',color=my_cols[1],size=3)+
+  annotate('text', x=1.9, y=1,label='Predator',color=my_cols[2],size=3)+
+  theme_dag()
+  
+pred <- predict(fitMCMC,0.95,simplify=TRUE)
+data <- data.table(fitMCMC@data)
+dataLong <- melt(data, id.vars='times')
+    
+g1 <- ggplot(dataLong, aes(x=times, y=value, group=variable, color=variable))+
+  geom_point(alpha=0.3, size=1.25)+
+  geom_line(inherit.aes = FALSE, data=pred$X, aes(x=times, y=estimate), alpha=1, linewidth=1.1, color=my_cols[1])+
+  geom_line(inherit.aes = FALSE, data=pred$Y, aes(x=times, y=estimate), alpha=1, linewidth=1.1, color=my_cols[2])+
+  labs(x='Time', y='Population abundance')+
+  annotate('text', x=54, y=14,label='Prey',color=my_cols[1],size=3)+
+  annotate('text', x=56, y=3,label='Predator',color=my_cols[2],size=3)+
+  theme_classic()+
+  scale_color_manual(values=c(my_cols))+
+  xlim(0,60)+
+  theme(legend.position='none', axis.title=element_text(size=8))
+
+  
+g2 <- ggplot() +
+  annotate('text', x=0, y=0.4, label=expression(frac(dy, dt) == Predator(r[Predator]*Prey - beta[Mortality])),size=1.75, col=my_cols[2])+
+  annotate('text', x=0, y=-0.4, label=expression(frac(dx, dt) == Prey(r[Prey] - beta[Consumption]*Predator)), size=1.75, col=my_cols[1])+
+  ylim(-1,1)+
+  xlim(-10,10)+
+  theme_no_axes()+ 
+  theme(panel.border = element_blank(),
+        plot.margin = unit(c(1,1,1,1), "cm"))
+  
+((p1 | g2) / g1) + plot_annotation(tag_levels='A')
+```
+
+
