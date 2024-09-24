@@ -17,6 +17,10 @@ library(brms)
 library(posterior)
 ```
 
+``` r
+set.seed(12345)
+```
+
 ## Part 1 - Simple model
 
 First, we will initialize variables for the simulation. These can be
@@ -26,7 +30,7 @@ feedbacks can result in massive values which can be tricky to model.
 
 ``` r
 # Initialize variables
-n_time_steps <- 50
+n_time_steps <- 20
 
 # auto effects (dampening)
 a_to_a <- 0.25
@@ -89,6 +93,93 @@ function of itself at a previous timestep, as well as the opposite
 variable at a previous timestep.
 
 ``` r
+library(lavaan)
+
+# Define the cross-lagged model with lagged variables
+model <- "
+  a ~ a_1 + b_1 
+  b ~ b_1 + a_1
+"
+
+# Fit the model to your df
+fit <- sem(model, data = df)
+
+# Show model summary
+summary(fit, fit.measures = TRUE, standardized = TRUE)
+```
+
+    lavaan 0.6.16 ended normally after 11 iterations
+
+      Estimator                                         ML
+      Optimization method                           NLMINB
+      Number of model parameters                         7
+
+                                                      Used       Total
+      Number of observations                            19          20
+
+    Model Test User Model:
+                                                          
+      Test statistic                                 0.000
+      Degrees of freedom                                 0
+
+    Model Test Baseline Model:
+
+      Test statistic                               157.432
+      Degrees of freedom                                 5
+      P-value                                        0.000
+
+    User Model versus Baseline Model:
+
+      Comparative Fit Index (CFI)                    1.000
+      Tucker-Lewis Index (TLI)                       1.000
+
+    Loglikelihood and Information Criteria:
+
+      Loglikelihood user model (H0)                  3.451
+      Loglikelihood unrestricted model (H1)          3.451
+                                                          
+      Akaike (AIC)                                   7.097
+      Bayesian (BIC)                                13.708
+      Sample-size adjusted Bayesian (SABIC)         -7.837
+
+    Root Mean Square Error of Approximation:
+
+      RMSEA                                          0.000
+      90 Percent confidence interval - lower         0.000
+      90 Percent confidence interval - upper         0.000
+      P-value H_0: RMSEA <= 0.050                       NA
+      P-value H_0: RMSEA >= 0.080                       NA
+
+    Standardized Root Mean Square Residual:
+
+      SRMR                                           0.000
+
+    Parameter Estimates:
+
+      Standard errors                             Standard
+      Information                                 Expected
+      Information saturated (h1) model          Structured
+
+    Regressions:
+                       Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+      a ~                                                                   
+        a_1               0.276    0.024   11.461    0.000    0.276    0.264
+        b_1              -0.945    0.023  -41.436    0.000   -0.945   -0.956
+      b ~                                                                   
+        b_1               0.306    0.036    8.511    0.000    0.306    0.309
+        a_1               0.986    0.038   25.962    0.000    0.986    0.942
+
+    Covariances:
+                       Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+     .a ~~                                                                  
+       .b                 0.003    0.011    0.225    0.822    0.003    0.052
+
+    Variances:
+                       Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+       .a                 0.031    0.010    3.082    0.002    0.031    0.010
+       .b                 0.077    0.025    3.082    0.002    0.077    0.025
+
+``` r
 f1 <- bf(b ~ 0 + Intercept + b_1 + a_1)
 f2 <- bf(a ~ 0 + Intercept + a_1 + b_1)
 
@@ -117,23 +208,23 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 
              a ~ 0 + Intercept + a_1 + b_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.01      0.04    -0.08     0.09 1.00    11976     6281
-    b_b_1           0.24      0.02     0.19     0.28 1.00    13481     5515
-    b_a_1           0.98      0.02     0.94     1.03 1.00    14616     6174
-    a_Intercept     0.03      0.04    -0.05     0.10 1.00    14064     6167
-    a_a_1           0.26      0.02     0.22     0.30 1.00    12758     5521
-    a_b_1          -0.98      0.02    -1.02    -0.94 1.00    12750     6349
+    b_Intercept     0.07      0.08    -0.08     0.22 1.00    10839     5544
+    b_b_1           0.31      0.04     0.22     0.39 1.00    10074     5280
+    b_a_1           0.98      0.05     0.89     1.08 1.00    10912     5387
+    a_Intercept     0.03      0.05    -0.06     0.13 1.00    10495     5865
+    a_a_1           0.28      0.03     0.22     0.33 1.00    10426     5538
+    a_b_1          -0.94      0.03    -1.00    -0.89 1.00     9329     5361
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.30      0.03     0.24     0.37 1.00    11212     6137
-    sigma_a     0.26      0.03     0.21     0.32 1.00    11297     6337
+    sigma_b     0.33      0.06     0.23     0.48 1.00     8358     5286
+    sigma_a     0.21      0.04     0.15     0.31 1.00     7988     5534
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -143,7 +234,7 @@ summary(m)
 mcmc_intervals(m, pars=c('b_b_a_1','b_a_b_1'))
 ```
 
-![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-6-1.png)
+![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-7-1.png)
 
 Yes, the model has accurately recovered the causal, bidirectional
 effects. Note that “b_b_a_1” refers to the effect of A on B, while
@@ -170,7 +261,7 @@ effects for the common-cause confound, “C”.
 
 ``` r
 # Initialize variables
-n_time_steps <- 50
+n_time_steps <- 20
 
 # auto effects (dampening)
 a_to_a <- 0.25
@@ -275,23 +366,23 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 
              a ~ 0 + Intercept + a_1 + b_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept    -0.04      0.06    -0.16     0.07 1.00     9063     5778
-    b_b_1           0.64      0.15     0.35     0.93 1.00     5450     5096
-    b_a_1           0.37      0.16     0.06     0.68 1.00     5410     5099
-    a_Intercept     0.02      0.07    -0.11     0.15 1.00     9597     5491
-    a_a_1           0.46      0.18     0.10     0.82 1.00     5691     5185
-    a_b_1           0.47      0.17     0.13     0.81 1.00     5782     5097
+    b_Intercept     0.42      0.26    -0.11     0.93 1.00     5413     4981
+    b_b_1           0.48      0.30    -0.12     1.07 1.00     3698     3646
+    b_a_1           0.40      0.26    -0.11     0.92 1.00     4050     4432
+    a_Intercept     0.07      0.33    -0.58     0.72 1.00     5147     4574
+    a_a_1           0.65      0.32     0.02     1.29 1.00     4062     4494
+    a_b_1           0.39      0.37    -0.36     1.11 1.00     3713     4327
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.35      0.04     0.28     0.43 1.00     9396     5758
-    sigma_a     0.39      0.04     0.32     0.48 1.00     8212     5831
+    sigma_b     0.43      0.08     0.30     0.61 1.00     6020     5119
+    sigma_a     0.56      0.10     0.40     0.80 1.00     6056     5498
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -301,7 +392,7 @@ summary(m)
 mcmc_intervals(m, pars=c('b_b_a_1','b_a_b_1'))
 ```
 
-![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-11-1.png)
+![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-12-1.png)
 
 Next, we apply a model that conditions on C. By including the effects of
 C at t-1 on values of A and B at time t, we are controlling for the
@@ -317,25 +408,25 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 + c_1 
              a ~ 0 + Intercept + a_1 + b_1 + c_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept    -0.04      0.04    -0.11     0.03 1.00     8426     5859
-    b_b_1           0.18      0.11    -0.04     0.40 1.00     5403     5139
-    b_a_1           0.10      0.11    -0.12     0.31 1.00     5855     5673
-    b_c_1           1.04      0.13     0.79     1.29 1.00     6144     4963
-    a_Intercept     0.02      0.05    -0.07     0.11 1.00     9367     5962
-    a_a_1           0.20      0.14    -0.08     0.48 1.00     6293     5194
-    a_b_1           0.01      0.15    -0.28     0.30 1.00     5233     5452
-    a_c_1           1.02      0.16     0.70     1.34 1.00     6909     5626
+    b_Intercept     0.12      0.19    -0.24     0.49 1.00     5205     4510
+    b_b_1           0.40      0.21    -0.03     0.82 1.00     4563     4823
+    b_a_1          -0.08      0.21    -0.48     0.34 1.00     4302     4079
+    b_c_1           0.87      0.20     0.47     1.24 1.00     6146     4827
+    a_Intercept    -0.32      0.24    -0.78     0.16 1.00     5460     5012
+    a_a_1           0.05      0.25    -0.45     0.55 1.00     4418     4986
+    a_b_1           0.27      0.26    -0.24     0.79 1.00     5348     5054
+    a_c_1           1.14      0.24     0.64     1.61 1.00     5922     4565
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.22      0.02     0.18     0.27 1.00     7741     5797
-    sigma_a     0.29      0.03     0.23     0.35 1.00     8360     5797
+    sigma_b     0.28      0.06     0.20     0.41 1.00     5618     5099
+    sigma_a     0.36      0.07     0.25     0.52 1.00     5590     5050
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -345,7 +436,7 @@ summary(m)
 mcmc_intervals(m, pars=c('b_b_a_1','b_a_b_1'))
 ```
 
-![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-14-1.png)
+![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-15-1.png)
 
 As expected, the correctly adjusted model recovers the lack of causal
 effects between A and B.
@@ -364,7 +455,7 @@ negative effect of B on A.
 
 ``` r
 # Initialize variables
-n_time_steps <- 50
+n_time_steps <- 20
 
 # auto effects (dampening)
 a_to_a <- 0.25
@@ -456,23 +547,23 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 
              a ~ 0 + Intercept + a_1 + b_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.56      0.14     0.28     0.85 1.00     4165     4735
-    b_b_1           0.68      0.10     0.49     0.87 1.00     4027     4570
-    b_a_1           0.30      0.09     0.13     0.46 1.00     6576     5662
-    a_Intercept     0.32      0.15     0.04     0.60 1.00     3949     4683
-    a_a_1           0.19      0.09     0.01     0.36 1.00     7101     5151
-    a_b_1          -0.40      0.10    -0.60    -0.21 1.00     3941     4295
+    b_Intercept     0.52      0.25     0.02     1.02 1.00     3598     4266
+    b_b_1           0.74      0.16     0.43     1.05 1.00     3395     4044
+    b_a_1           0.17      0.12    -0.08     0.42 1.00     5089     4626
+    a_Intercept     0.40      0.26    -0.14     0.91 1.00     3244     4230
+    a_a_1           0.29      0.13     0.03     0.54 1.00     5162     4769
+    a_b_1          -0.41      0.16    -0.73    -0.08 1.00     3107     3901
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.16      0.02     0.13     0.19 1.00     6682     5421
-    sigma_a     0.16      0.02     0.13     0.20 1.00     6856     5271
+    sigma_b     0.20      0.04     0.14     0.29 1.00     5759     5148
+    sigma_a     0.21      0.04     0.15     0.31 1.00     5979     4673
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -487,23 +578,23 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 
              a ~ 0 + Intercept + a_1 + b_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.56      0.14     0.28     0.85 1.00     4165     4735
-    b_b_1           0.68      0.10     0.49     0.87 1.00     4027     4570
-    b_a_1           0.30      0.09     0.13     0.46 1.00     6576     5662
-    a_Intercept     0.32      0.15     0.04     0.60 1.00     3949     4683
-    a_a_1           0.19      0.09     0.01     0.36 1.00     7101     5151
-    a_b_1          -0.40      0.10    -0.60    -0.21 1.00     3941     4295
+    b_Intercept     0.52      0.25     0.02     1.02 1.00     3598     4266
+    b_b_1           0.74      0.16     0.43     1.05 1.00     3395     4044
+    b_a_1           0.17      0.12    -0.08     0.42 1.00     5089     4626
+    a_Intercept     0.40      0.26    -0.14     0.91 1.00     3244     4230
+    a_a_1           0.29      0.13     0.03     0.54 1.00     5162     4769
+    a_b_1          -0.41      0.16    -0.73    -0.08 1.00     3107     3901
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.16      0.02     0.13     0.19 1.00     6682     5421
-    sigma_a     0.16      0.02     0.13     0.20 1.00     6856     5271
+    sigma_b     0.20      0.04     0.14     0.29 1.00     5759     5148
+    sigma_a     0.21      0.04     0.15     0.31 1.00     5979     4673
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -513,14 +604,14 @@ summary(m)
 mcmc_intervals(m, pars=c('b_b_a_1','b_a_b_1'))
 ```
 
-![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-19-1.png)
+![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-20-1.png)
 
 As we can see in the above model summary, we do not recover the
-simulated effects of A on B (0.1) or B on A (-1) accurately. The effects
-are roughly similar in direction and magnitude however, suggesting that
-the model is still picking up some of what we simulated, even with
-confounding. Of course the extent to which this is true will depend on
-the causal scenario and effect size at hand.
+simulated effects of A on B (0.25) or B on A (-1) accurately. The
+effects are roughly similar in direction and magnitude however,
+suggesting that the model is still picking up some of what we simulated,
+even with confounding. Of course the extent to which this is true will
+depend on the causal scenario and effect size at hand.
 
 Next, we fit the more causally appropriate model in which we condition
 on the known confound.
@@ -549,25 +640,25 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 + c_1 
              a ~ 0 + Intercept + a_1 + b_1 + c_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.04      0.10    -0.15     0.23 1.00     6341     5697
-    b_b_1           0.21      0.07     0.06     0.35 1.00     5812     4873
-    b_a_1           0.31      0.05     0.22     0.41 1.00     7395     5148
-    b_c_1           1.02      0.11     0.81     1.23 1.00     4754     4870
-    a_Intercept    -0.14      0.12    -0.37     0.09 1.00     7086     6144
-    a_a_1           0.20      0.06     0.08     0.31 1.00     8748     5891
-    a_b_1          -0.85      0.09    -1.02    -0.67 1.00     6076     4917
-    a_c_1           0.94      0.13     0.69     1.19 1.00     5286     5363
+    b_Intercept    -0.01      0.19    -0.38     0.36 1.00     4676     4502
+    b_b_1           0.16      0.15    -0.12     0.45 1.00     4450     4697
+    b_a_1           0.25      0.07     0.10     0.39 1.00     5710     5337
+    b_c_1           1.09      0.21     0.67     1.51 1.00     3719     3860
+    a_Intercept    -0.07      0.21    -0.48     0.36 1.00     5383     4595
+    a_a_1           0.36      0.09     0.19     0.54 1.00     5904     4855
+    a_b_1          -0.95      0.17    -1.28    -0.61 1.00     3777     3699
+    a_c_1           1.01      0.24     0.52     1.45 1.00     3681     3463
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.09      0.01     0.07     0.11 1.00     7860     6226
-    sigma_a     0.11      0.01     0.09     0.13 1.00     7884     5739
+    sigma_b     0.12      0.02     0.08     0.17 1.00     5631     5054
+    sigma_a     0.14      0.03     0.10     0.20 1.00     5095     4110
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -582,25 +673,25 @@ summary(m)
              mu = identity; sigma = identity 
     Formula: b ~ 0 + Intercept + b_1 + a_1 + c_1 
              a ~ 0 + Intercept + a_1 + b_1 + c_1 
-       Data: df (Number of observations: 49) 
+       Data: df (Number of observations: 19) 
       Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 1;
              total post-warmup draws = 8000
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.04      0.10    -0.15     0.23 1.00     6341     5697
-    b_b_1           0.21      0.07     0.06     0.35 1.00     5812     4873
-    b_a_1           0.31      0.05     0.22     0.41 1.00     7395     5148
-    b_c_1           1.02      0.11     0.81     1.23 1.00     4754     4870
-    a_Intercept    -0.14      0.12    -0.37     0.09 1.00     7086     6144
-    a_a_1           0.20      0.06     0.08     0.31 1.00     8748     5891
-    a_b_1          -0.85      0.09    -1.02    -0.67 1.00     6076     4917
-    a_c_1           0.94      0.13     0.69     1.19 1.00     5286     5363
+    b_Intercept    -0.01      0.19    -0.38     0.36 1.00     4676     4502
+    b_b_1           0.16      0.15    -0.12     0.45 1.00     4450     4697
+    b_a_1           0.25      0.07     0.10     0.39 1.00     5710     5337
+    b_c_1           1.09      0.21     0.67     1.51 1.00     3719     3860
+    a_Intercept    -0.07      0.21    -0.48     0.36 1.00     5383     4595
+    a_a_1           0.36      0.09     0.19     0.54 1.00     5904     4855
+    a_b_1          -0.95      0.17    -1.28    -0.61 1.00     3777     3699
+    a_c_1           1.01      0.24     0.52     1.45 1.00     3681     3463
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.09      0.01     0.07     0.11 1.00     7860     6226
-    sigma_a     0.11      0.01     0.09     0.13 1.00     7884     5739
+    sigma_b     0.12      0.02     0.08     0.17 1.00     5631     5054
+    sigma_a     0.14      0.03     0.10     0.20 1.00     5095     4110
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -610,7 +701,7 @@ summary(m)
 mcmc_intervals(m, pars=c('b_b_a_1','b_a_b_1'))
 ```
 
-![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-22-1.png)
+![](Vignette-PanelModel_github_files/figure-commonmark/unnamed-chunk-23-1.png)
 
 Here, as expected, we recover more accurate estimates of the direct
 effects of A on B and of B on A.

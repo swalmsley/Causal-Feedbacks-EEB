@@ -1,6 +1,10 @@
 # Method 3. Instrumental variable analysis
 Sam Walmsley, Suchinta Arif, Hal Whitehead
 
+``` r
+set.seed(12345)
+```
+
 ## Part 1. Applying the instrumental variable model
 
 This example shows how reciprocal effects between traits can be
@@ -25,7 +29,7 @@ estimates that the model recovers.
 
 ``` r
 set.seed(1234)
-n <- 100
+n <- 200
 
 Instrument_1 <- rnorm(n)
 Instrument_2 <- rnorm(n)
@@ -58,25 +62,25 @@ summary(ivmodel, diagnostics=TRUE)
     ivreg(formula = A ~ B | Instrument_1, data = data)
 
     Residuals:
-         Min       1Q   Median       3Q      Max 
-    -7.37704 -1.72088  0.08888  1.42670  7.98012 
+        Min      1Q  Median      3Q     Max 
+    -7.2151 -1.6866  0.1511  1.8790  8.6685 
 
     Coefficients:
-                Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)   0.3890     0.2822   1.378 0.171261    
-    B            -0.9131     0.2352  -3.882 0.000188 ***
+                 Estimate Std. Error t value Pr(>|t|)    
+    (Intercept) -0.003314   0.201919  -0.016    0.987    
+    B           -0.918193   0.171361  -5.358 2.32e-07 ***
 
     Diagnostic tests:
-                     df1 df2 statistic  p-value    
-    Weak instruments   1  98     39.13 1.04e-08 ***
-    Wu-Hausman         1  97     58.38 1.54e-11 ***
-    Sargan             0  NA        NA       NA    
+                     df1 df2 statistic p-value    
+    Weak instruments   1 198     91.48  <2e-16 ***
+    Wu-Hausman         1 197    130.35  <2e-16 ***
+    Sargan             0  NA        NA      NA    
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 2.821 on 98 degrees of freedom
-    Multiple R-Squared: -0.9357,    Adjusted R-squared: -0.9554 
-    Wald test: 15.07 on 1 and 98 DF,  p-value: 0.0001881 
+    Residual standard error: 2.844 on 198 degrees of freedom
+    Multiple R-Squared: -0.8618,    Adjusted R-squared: -0.8712 
+    Wald test: 28.71 on 1 and 198 DF,  p-value: 2.323e-07 
 
 ``` r
 # Perform the 2SLS regression for effect of A on B
@@ -89,25 +93,25 @@ summary(ivmodel, diagnostics=TRUE)
     ivreg(formula = B ~ A | Instrument_2, data = data)
 
     Residuals:
-         Min       1Q   Median       3Q      Max 
-    -8.88247 -2.60545 -0.05111  2.53820 10.63011 
+        Min      1Q  Median      3Q     Max 
+    -7.7840 -2.0406 -0.2737  2.0934 10.0125 
 
     Coefficients:
                 Estimate Std. Error t value Pr(>|t|)    
-    (Intercept)  -0.4211     0.3719  -1.132  0.26027    
-    A             1.2534     0.3529   3.552  0.00059 ***
+    (Intercept)  -0.2220     0.2298  -0.966    0.335    
+    A             1.1851     0.2352   5.039 1.05e-06 ***
 
     Diagnostic tests:
                      df1 df2 statistic  p-value    
-    Weak instruments   1  98     31.51 1.85e-07 ***
-    Wu-Hausman         1  97     77.38 5.30e-14 ***
+    Weak instruments   1 198      55.8 2.51e-12 ***
+    Wu-Hausman         1 197     124.9  < 2e-16 ***
     Sargan             0  NA        NA       NA    
     ---
     Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-    Residual standard error: 3.495 on 98 degrees of freedom
-    Multiple R-Squared: -1.374, Adjusted R-squared: -1.398 
-    Wald test: 12.61 on 1 and 98 DF,  p-value: 0.0005905 
+    Residual standard error: 3.234 on 198 degrees of freedom
+    Multiple R-Squared: -1.377, Adjusted R-squared: -1.389 
+    Wald test: 25.39 on 1 and 198 DF,  p-value: 1.052e-06 
 
 As shown in the model summaries, the IV models accurately recover the
 simulated effects of B on A (-1) and A on B (1). Next, we fit a Bayesian
@@ -131,25 +135,25 @@ summary(iv_model)
              mu = identity; sigma = identity 
     Formula: B ~ 1 + Instrument_1 
              A ~ 1 + B 
-       Data: d (Number of observations: 100) 
+       Data: d (Number of observations: 200) 
       Draws: 4 chains, each with iter = 10000; warmup = 5000; thin = 1;
              total post-warmup draws = 20000
 
     Population-Level Effects: 
                    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    B_Intercept        0.21      0.19    -0.15     0.58 1.00    11785    13367
-    A_Intercept        0.36      0.25    -0.14     0.86 1.00    11641    12428
-    B_Instrument_1     1.25      0.17     0.92     1.59 1.00     9154    10655
-    A_B               -0.83      0.20    -1.27    -0.49 1.00     7666     8155
+    B_Intercept       -0.04      0.12    -0.28     0.19 1.00    11640    11771
+    A_Intercept       -0.00      0.19    -0.39     0.38 1.00    11852    12539
+    B_Instrument_1     1.18      0.11     0.95     1.40 1.00     7886    10005
+    A_B               -0.87      0.16    -1.21    -0.59 1.00     6924     6858
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_B     1.90      0.13     1.66     2.18 1.00    12613    12356
-    sigma_A     2.67      0.34     2.12     3.46 1.00     7599     8482
+    sigma_B     1.73      0.09     1.57     1.91 1.00    12300    11284
+    sigma_A     2.77      0.25     2.34     3.34 1.00     6673     6841
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(B,A)     0.78      0.06     0.64     0.89 1.00     7683     8931
+    rescor(B,A)     0.80      0.04     0.71     0.87 1.00     6818     7748
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -159,7 +163,7 @@ summary(iv_model)
 mcmc_intervals(iv_model, pars='b_A_B')
 ```
 
-![](Vignette-InstrumentalVariables_github_files/figure-commonmark/unnamed-chunk-7-1.png)
+![](Vignette-InstrumentalVariables_github_files/figure-commonmark/unnamed-chunk-8-1.png)
 
 ``` r
 # output of model to identify causal effect of A on B
@@ -171,25 +175,25 @@ summary(iv_model_2)
              mu = identity; sigma = identity 
     Formula: A ~ 1 + Instrument_2 
              B ~ 1 + A 
-       Data: d (Number of observations: 100) 
+       Data: d (Number of observations: 200) 
       Draws: 4 chains, each with iter = 10000; warmup = 5000; thin = 1;
              total post-warmup draws = 20000
 
     Population-Level Effects: 
                    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    A_Intercept        0.31      0.17    -0.02     0.63 1.00    11111    11851
-    B_Intercept       -0.34      0.31    -0.98     0.25 1.00    10462    10128
-    A_Instrument_2     1.05      0.15     0.78     1.36 1.00     7895     9457
-    B_A                1.05      0.26     0.61     1.60 1.00     6461     7437
+    A_Intercept        0.02      0.13    -0.23     0.27 1.00    10300    11261
+    B_Intercept       -0.21      0.21    -0.62     0.20 1.00    10385    10414
+    A_Instrument_2     1.02      0.12     0.79     1.25 1.00     7874    10263
+    B_A                1.08      0.20     0.74     1.51 1.00     6659     8158
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_A     1.75      0.12     1.53     2.01 1.00    13111    11901
-    sigma_B     3.15      0.42     2.47     4.10 1.00     6381     7316
+    sigma_A     1.83      0.09     1.67     2.02 1.00    13578    12618
+    sigma_B     3.06      0.33     2.50     3.80 1.00     6439     7662
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(A,B)    -0.83      0.05    -0.91    -0.71 1.00     6441     7539
+    rescor(A,B)    -0.83      0.04    -0.90    -0.75 1.00     6870     8208
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -199,7 +203,7 @@ summary(iv_model_2)
 mcmc_intervals(iv_model_2, pars='b_B_A')
 ```
 
-![](Vignette-InstrumentalVariables_github_files/figure-commonmark/unnamed-chunk-8-1.png)
+![](Vignette-InstrumentalVariables_github_files/figure-commonmark/unnamed-chunk-9-1.png)
 
 <div id="refs" class="references csl-bib-body hanging-indent">
 

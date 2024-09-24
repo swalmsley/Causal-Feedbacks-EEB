@@ -21,6 +21,10 @@ library(data.table)
 library(ggforce)
 ```
 
+``` r
+set.seed(12345)
+```
+
 First we use the model to build a simulated dataset. This allows us to
 specify key parameters that we can attempt to recover by fitting an
 explanatory model to the resulting simulated data.
@@ -182,7 +186,7 @@ g2 <- ggplot() +
 ((p1 | g2) / g1) + plot_annotation(tag_levels='A')
 ```
 
-![](Vignette-ODEs_github_files/figure-commonmark/unnamed-chunk-7-1.png)
+![](Vignette-ODEs_github_files/figure-commonmark/unnamed-chunk-8-1.png)
 
 <div id="refs" class="references csl-bib-body hanging-indent">
 
