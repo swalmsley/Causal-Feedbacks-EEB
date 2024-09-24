@@ -1,0 +1,121 @@
+---
+title: "Method 3. Instrumental variable analysis"
+author: "Sam Walmsley, Suchinta Arif, Hal Whitehead"
+bibliography: bibliography2.json
+execute:
+  eval: true
+  message: false
+  warning: false
+format: gfm
+---
+
+```{r, include=FALSE, echo=FALSE}
+# library(rbbt)
+# bbt_write_bib("./Vignettes/bibliography2.json", bbt_detect_citations("./Vignettes/Vignette-InstrumentalVariables.qmd"), overwrite = TRUE)
+```
+
+## Part 1. Applying the instrumental variable model
+
+This example shows how reciprocal effects between traits can be extracted from purely cross-sectional data, if appropriate instrumental variables can be identified.
+
+We begin by loading several key packages:
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(sjPlot)
+library(brms)
+library(AER)
+library(bayesplot)
+```
+
+Next, we will initialize variables for the simulation. These can be modified to explore how different effect and sample sizes impact the estimates that the model recovers.
+
+```{r}
+set.seed(1234)
+n <- 100
+
+Instrument_1 <- rnorm(n)
+Instrument_2 <- rnorm(n)
+
+A_initial <- rnorm(n) + 1*Instrument_2 # initial values of A and B are influenced by their respective instruments
+B_initial <- rnorm(n) + 1*Instrument_1
+
+A <- A_initial + (-1)*B_initial # A is influenced by instrument_2 and B 
+B <- B_initial + (1)*A_initial # B is influenced by instrument_1 and A
+
+# Create a dataframe
+data <- data.frame(A, B, Instrument_1, Instrument_2)
+```
+
+Next, we can use each instrument to identify the direct effects in turn. First, we will do so using the AER package. Though somewhat less flexible than brms, these models run significantly faster and are ideal for simple IV models like this one. More specifically, we use the AER package to apply the 2SLS algorithm. Note that there is one model for each directional effect in question.
+
+```{r}
+# Perform the 2SLS regression for effect of B on A
+ivmodel <- ivreg(A ~ B | Instrument_1, data = data)
+summary(ivmodel, diagnostics=TRUE)
+```
+
+```{r}
+# Perform the 2SLS regression for effect of A on B
+ivmodel <- ivreg(B ~ A | Instrument_2, data = data) # gives expected result for A_initial, not A
+summary(ivmodel, diagnostics=TRUE)
+```
+
+As shown in the model summaries, the IV models accurately recover the simulated effects of B on A (-1) and A on B (1). Next, we fit a Bayesian version of these IV models using the brms package.
+
+```{r, include = FALSE}
+
+# model to identify causal effect of B on A
+d <- data.frame(B, Instrument_1, Instrument_2, A)
+f1 <- bf(B ~ 1 + Instrument_1)
+f2 <- bf(A ~ 1 + B)
+iv_model <- brm(f1 + f2 + set_rescor(TRUE),
+                data=d, 
+                prior = c(# First model
+                          prior(normal(0, 1), class = Intercept, resp = B),
+                          prior(normal(0, 1), class = b, resp = B),
+                          prior(exponential(1), class = sigma, resp = B),
+
+                          # Second model
+                          prior(normal(0, 1), class = Intercept, resp = A),
+                          prior(normal(0, 1), class = b, resp = A),
+                          prior(exponential(1), class = sigma, resp = A)),
+
+                iter = 10000, warmup = 5000, chains = 4, cores = 4,
+                family = 'Gaussian')
+
+# model to identify causal effect of A on B
+d <- data.frame(B, Instrument_1, Instrument_2, A)
+f1 <- bf(A ~ 1 + Instrument_2)
+f2 <- bf(B ~ 1 + A)
+iv_model_2 <- brm(f1 + f2 + set_rescor(TRUE),
+                data=d, 
+                prior = c(# First model
+                  prior(normal(0, 1), class = Intercept, resp = B),
+                  prior(normal(0, 1), class = b, resp = B),
+                  prior(exponential(1), class = sigma, resp = B),
+                  
+                  # Second model
+                  prior(normal(0, 1), class = Intercept, resp = A),
+                  prior(normal(0, 1), class = b, resp = A),
+                  prior(exponential(1), class = sigma, resp = A)),
+                  
+                iter = 10000, warmup = 5000, chains = 4, cores = 4,
+                family = 'Gaussian')
+```
+
+Finally, we will assess the results of the Bayesian IV models. As before, the model has recovered the simulated, causal effects between A and B. Note that b_B_A represents the effect of A on B while b_A_B represents the effect of B on A. It is also important to note that accurate inference from IV models requires adequately strong instruments (see diagnostic checks in AER summary output, for example), and will also depend on sample size. See @graceInstrumentalVariableMethods2021 for additional information.
+
+```{r}
+# output of model to identify causal effect of B on A
+summary(iv_model)
+mcmc_intervals(iv_model, pars='b_A_B')
+```
+
+```{r}
+# output of model to identify causal effect of A on B
+summary(iv_model_2)
+mcmc_intervals(iv_model_2, pars='b_B_A')
+```
