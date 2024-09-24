@@ -4,6 +4,11 @@ This repository contains the data and code necessary to replicate the analyses i
 
 All analyses can be replicated in a single step using the tar_make() function from the *targets* package. Specific outputs can then be examined using tar_read(*target-name-of-interest*).
 
+## Worked examples
+
+Method 1. Lagged effects in temporally explicit causal models [https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-PanelModel_github.md] (#Link)
+
+
 ## Authors
 
 Sam Walmsley, Suchinta Arif, Hal Whitehead
