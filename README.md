@@ -11,12 +11,3 @@ Method 1. Cross lagged effects: [Link to Vignette](https://github.com/swalmsley/
 Method 2. Continuous time methods: [Link to Vignette](https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-ODEs_github.md)
 
 Method 3. Instrumental Variables: [Link to Vignette](https://github.com/swalmsley/Causal-Feedbacks-EEB/blob/main/Vignettes/Vignette-InstrumentalVariables_github.md)
-
-
-## Authors
-
-Sam Walmsley, Suchinta Arif, Hal Whitehead
-
-## Contact information
-
-sam.walmsley@dal.ca
