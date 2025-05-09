@@ -1,5 +1,5 @@
 # Method 3. Instrumental variable analysis
-Sam Walmsley, Suchinta Arif, Hal Whitehead
+Authors anonymized for peer review.
 
 ``` r
 set.seed(12345)
@@ -117,6 +117,46 @@ As shown in the model summaries, the IV models accurately recover the
 simulated effects of B on A (-1) and A on B (1). Next, we fit a Bayesian
 version of these IV models using the brms package.
 
+``` r
+# model to identify causal effect of B on A
+d <- data.frame(B, Instrument_1, Instrument_2, A)
+f1 <- bf(B ~ 1 + Instrument_1)
+f2 <- bf(A ~ 1 + B)
+iv_model <- brm(f1 + f2 + set_rescor(TRUE),
+                data=d, 
+                prior = c(# First model
+                          prior(normal(0, 1), class = Intercept, resp = B),
+                          prior(normal(0, 1), class = b, resp = B),
+                          prior(exponential(1), class = sigma, resp = B),
+
+                          # Second model
+                          prior(normal(0, 1), class = Intercept, resp = A),
+                          prior(normal(0, 1), class = b, resp = A),
+                          prior(exponential(1), class = sigma, resp = A)),
+
+                iter = 10000, warmup = 5000, chains = 4, cores = 4,
+                family = 'Gaussian')
+
+# model to identify causal effect of A on B
+d <- data.frame(B, Instrument_1, Instrument_2, A)
+f1 <- bf(A ~ 1 + Instrument_2)
+f2 <- bf(B ~ 1 + A)
+iv_model_2 <- brm(f1 + f2 + set_rescor(TRUE),
+                data=d, 
+                prior = c(# First model
+                  prior(normal(0, 1), class = Intercept, resp = B),
+                  prior(normal(0, 1), class = b, resp = B),
+                  prior(exponential(1), class = sigma, resp = B),
+                  
+                  # Second model
+                  prior(normal(0, 1), class = Intercept, resp = A),
+                  prior(normal(0, 1), class = b, resp = A),
+                  prior(exponential(1), class = sigma, resp = A)),
+                  
+                iter = 10000, warmup = 5000, chains = 4, cores = 4,
+                family = 'Gaussian')
+```
+
 Finally, we will assess the results of the Bayesian IV models. As
 before, the model has recovered the simulated, causal effects between A
 and B. Note that b_B_A represents the effect of A on B while b_A_B
@@ -141,19 +181,19 @@ summary(iv_model)
 
     Population-Level Effects: 
                    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    B_Intercept       -0.04      0.12    -0.28     0.19 1.00    11640    11771
-    A_Intercept       -0.00      0.19    -0.39     0.38 1.00    11852    12539
-    B_Instrument_1     1.18      0.11     0.95     1.40 1.00     7886    10005
-    A_B               -0.87      0.16    -1.21    -0.59 1.00     6924     6858
+    B_Intercept       -0.04      0.12    -0.28     0.20 1.00    10690    10448
+    A_Intercept        0.00      0.19    -0.38     0.38 1.00    10617    10488
+    B_Instrument_1     1.18      0.11     0.96     1.40 1.00     8331     9932
+    A_B               -0.87      0.16    -1.20    -0.60 1.00     7057     8453
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_B     1.73      0.09     1.57     1.91 1.00    12300    11284
-    sigma_A     2.77      0.25     2.34     3.34 1.00     6673     6841
+    sigma_B     1.73      0.09     1.57     1.91 1.00    13081    11515
+    sigma_A     2.77      0.26     2.34     3.34 1.00     7247     8415
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(B,A)     0.80      0.04     0.71     0.87 1.00     6818     7748
+    rescor(B,A)     0.80      0.04     0.71     0.88 1.00     7356     9068
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -181,19 +221,19 @@ summary(iv_model_2)
 
     Population-Level Effects: 
                    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    A_Intercept        0.02      0.13    -0.23     0.27 1.00    10300    11261
-    B_Intercept       -0.21      0.21    -0.62     0.20 1.00    10385    10414
-    A_Instrument_2     1.02      0.12     0.79     1.25 1.00     7874    10263
-    B_A                1.08      0.20     0.74     1.51 1.00     6659     8158
+    A_Intercept        0.02      0.13    -0.23     0.27 1.00    10043    10495
+    B_Intercept       -0.20      0.21    -0.62     0.20 1.00    10093    10137
+    A_Instrument_2     1.02      0.12     0.79     1.26 1.00     8311     9932
+    B_A                1.07      0.19     0.73     1.50 1.00     6868     8211
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_A     1.83      0.09     1.67     2.02 1.00    13578    12618
-    sigma_B     3.06      0.33     2.50     3.80 1.00     6439     7662
+    sigma_A     1.83      0.09     1.66     2.02 1.00    13159    11270
+    sigma_B     3.05      0.33     2.50     3.78 1.00     6861     8172
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(A,B)    -0.83      0.04    -0.90    -0.75 1.00     6870     8208
+    rescor(A,B)    -0.83      0.04    -0.90    -0.75 1.00     7091     7957
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
