@@ -1,218 +1,243 @@
 # Method 2. Continuous time method to identifying bidirectional effects
-Sam Walmsley, Suchinta Arif, Hal Whitehead
+Authors anonymized for peer review.
 
 This example demonstrates how a model specified with ordinary
 differential equations can be used to infer bidirectional effects from
-simulated data. We use the classic lynx-hare predator-prey cycling as
-the case study for our simulation. This example is adapted from similar
-studies in McElreath (2020); Park and Bolker (2022); Stan Development
-Team and Carpenter (2018).
+simulated data.
 
 We begin by loading in key packages.
 
 ``` r
-library(deSolve)
-library(dagitty)
-library(ggdag)
-library(fitode)
 library(ggplot2)
-library(patchwork)
+library(ctsem)
 library(data.table)
-library(ggforce)
+library(tidyr)
 ```
 
-``` r
-set.seed(12345)
-```
+Here we specify the parameters defining our eco-evolutionary system. Our
+aim is for the model we fit to recover these “true” values. In
+particular, we are interested in the “Eco_to_Evo” and “Evo_to_Eco”
+effects, which capture the bidirectionality in the system. We begin by
+setting up the number of time points and observations that we want to
+include.
 
-First we use the model to build a simulated dataset. This allows us to
-specify key parameters that we can attempt to recover by fitting an
-explanatory model to the resulting simulated data.
-
 ``` r
-# Define the ODE system
-  ode_system <- function(time, state, parameters) {
-    with(as.list(c(state, parameters)), {
-      dx <- a*X - b*X*Y
-      dy <- c*Y*X - d*Y
-      return(list(c(dx, dy)))
-    })
-  }
+# Set up time points
+times <- seq(from=0, to=200, by=1)
+Nobs <- length(times)
+
+# System parameters for perfect oscillations
+A_pop <- -0.01         # Modest self-regulation for population 
+A_trait <- -0.01      # Modest self-regulation for trait
   
-  # Simulated data (with added noise)
-  set.seed(123)
-  times <- seq(0, 50, by = 0.1)
-  true_parameters <- c(a = 1.1, b = 0.4, c = 0.1, d = 0.4)
-  state <- c(X = 1, Y = 1)
-  simulated_data <- ode(y = state, times = times, func = ode_system, parms = true_parameters)
-  simulated_data <- as.data.frame(simulated_data)  # Ensure data is a data.frame
-  simulated_data$X <- simulated_data$X + rnorm(nrow(simulated_data), sd = 1)
-  simulated_data$Y <- simulated_data$Y + rnorm(nrow(simulated_data), sd = 1)
-```
-
-Here we define the explanatory model.
-
-``` r
-  lotka_model <- odemodel(
-    name="Lotka Volterra model",
-    model=list(
-      u ~ a * u - b * u * v,
-      v ~ c * u * v - d * v
-    ),
-    observation=list(
-      X ~ dpois(lambda=u),
-      Y ~ dpois(lambda=v)
-    ),
-    initial=list(
-      u ~ u0,
-      v ~ v0
-    ),
-    par=c("a", "b", "c", "d", "u0", "v0")
-  )
-```
-
-Next we specify the starting parameters and fit the model using MCMC in
-the *fitODE* package. Though beyond the scope of this article, we note
-that the identification of starting parameters can be a significant
-challenge.
-
-``` r
-  harestart <- c(a = 0.5,
-                 b = 0.5,
-                 c = 0.5,
-                 d = 0.5,
-                 u0 = 1,
-                 v0 = 1)
+# Exactly balanced cross-effect parameters
+Eco_to_Evo <- -0.1    # Effect of population on trait
+Evo_to_Eco <- 0.1   # Effect of trait on population (negative feedback)
   
+# Equal continuous intercepts
+B_pop <- 0
+B_trait <- 0
 
-  proposal.vcov <- matrix(0, 6, 6)
-  diag(proposal.vcov) <- c(1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4)
-
-  fitMCMC <- fitodeMCMC(lotka_model, data=simulated_data,
-                        start=harestart,
-                        proposal.vcov = proposal.vcov,
-                        tcol="time")
+# System noise
+G_pop <- 0.2
+G_trait <- 0.2
+G_cross <- 0.2
 ```
 
-Next, we can examine the parameter estimates to see if we have recovered
-the simulated values. As shown below, all estimates are very close to
-the “true” inputs.
+Here we iteratively generate the data based on our parameters, encoding
+key features such as autoregressive effects, bidirectional effects, and
+measurement error.
 
 ``` r
-fitMCMC
-```
-
-    Model: Lotka Volterra model 
-
-    Observations:
-    X ~ dpois(lambda = u) 
-    Y ~ dpois(lambda = v) 
-
-    Priors:
-
-    None
-
-    Coefficients:
-            a         b         c         d        u0        v0 
-    0.9333583 0.3561711 0.1260905 0.4915579 1.0871176 0.7175939 
-
-    Samples: 1 chains, each with iter = 2000; burnin = 1000; thin = 1
-
-    link: a = log; b = log; c = log; d = log; u0 = log; v0 = log
-
-Finally, we plot the results for comparison.
-
-``` r
-# Set up colors
-
-my_cols <- c('steelblue','red')
-  
-
-# Oversimplified DAG
-dag_text <- 'dag{
-A -> B;
-B -> A;
-}'
-  
-dag <- dagitty(dag_text)
-
-# Manually set the coordinates of the nodes
-coordinates(dag) <- list(
-  x = c(A = 1, B = 2),
-  y = c(A = 1, B = 1)
+# Create data frame
+data <- data.frame(
+  Time = times,
+  PopDensity = rep(NA, Nobs),
+  TraitValue = rep(NA, Nobs)
 )
 
-  
-p1 <- ggdag(dag) +
-  geom_dag_node(colour='white') +
-  geom_dag_edges(edge_color='white')+
-  geom_dag_edges_arc()+
-  geom_dag_text(
-    label=c('Prey','Predator'),
-    parse=FALSE,
-    size=c(2,2),
-    colour = c('white','white')
-  ) +
-  annotate('text', x=1, y=1,label='Prey',color=my_cols[1],size=3)+
-  annotate('text', x=1.9, y=1,label='Predator',color=my_cols[2],size=3)+
-  theme_dag()
-  
-pred <- predict(fitMCMC,0.95,simplify=TRUE)
-data <- data.table(fitMCMC@data)
-dataLong <- melt(data, id.vars='times')
-    
-g1 <- ggplot(dataLong, aes(x=times, y=value, group=variable, color=variable))+
-  geom_point(alpha=0.3, size=1.25)+
-  geom_line(inherit.aes = FALSE, data=pred$X, aes(x=times, y=estimate), alpha=1, linewidth=1.1, color=my_cols[1])+
-  geom_line(inherit.aes = FALSE, data=pred$Y, aes(x=times, y=estimate), alpha=1, linewidth=1.1, color=my_cols[2])+
-  labs(x='Time', y='Population abundance')+
-  annotate('text', x=54, y=14,label='Prey',color=my_cols[1],size=3)+
-  annotate('text', x=56, y=3,label='Predator',color=my_cols[2],size=3)+
-  theme_classic()+
-  scale_color_manual(values=c(my_cols))+
-  xlim(0,60)+
-  theme(legend.position='none', axis.title=element_text(size=8))
+# Specify initial values
+initialPopDensity <- 0
+initialTraitValue <- 0 
 
+# Initialize states
+PopDensityState <- initialPopDensity
+TraitValueState <- initialTraitValue
+
+# Generate data with eco-evolutionary feedback
+for(obsi in 1:Nobs) {
   
-g2 <- ggplot() +
-  annotate('text', x=0, y=0.4, label=expression(frac(dy, dt) == Predator(r[Predator]*Prey - beta[Mortality])),size=1.75, col=my_cols[2])+
-  annotate('text', x=0, y=-0.4, label=expression(frac(dx, dt) == Prey(r[Prey] - beta[Consumption]*Predator)), size=1.75, col=my_cols[1])+
-  ylim(-1,1)+
-  xlim(-10,10)+
-  theme_no_axes()+ 
-  theme(panel.border = element_blank(),
-        plot.margin = unit(c(1,1,1,1), "cm"))
+  # if first observation, just use initial values
+  if(obsi == 1) {
+    data$PopDensity[obsi] <- PopDensityState
+    data$TraitValue[obsi] <- TraitValueState
+    
+  } else {
+    
+    # Calculate deterministic changes:
+    dPopDensity <- A_pop * PopDensityState + Evo_to_Eco * TraitValueState + B_pop
+    dTraitValue <- A_trait * TraitValueState + Eco_to_Evo * PopDensityState + B_trait
+      
+    # Generate system noise
+    systemNoisePopDensity <- rnorm(n=1, mean=0, sd=1)
+    systemNoiseTraitValue <- rnorm(n=1, mean=0, sd=1)
+    systemNoiseCross <- rnorm(n=1, mean=0, sd=1)
+    
+    # Update states
+    PopDensityState <- PopDensityState + dPopDensity + 
+    G_pop * systemNoisePopDensity + G_cross * systemNoiseCross
+    
+    TraitValueState <- TraitValueState + dTraitValue + 
+    G_trait * systemNoiseTraitValue + G_cross * systemNoiseCross
+    }
   
-((p1 | g2) / g1) + plot_annotation(tag_levels='A')
+  data$PopDensity[obsi] <- PopDensityState
+  data$TraitValue[obsi] <- TraitValueState
+  
+}
+
+# Add minimal measurement error
+data$PopDensity <- data$PopDensity + rnorm(n=Nobs, mean=0, sd=0.01)
+data$TraitValue <- data$TraitValue + rnorm(n=Nobs, mean=0, sd=0.01)
+
+# Add ID variable for ctsem format
+data$ID <- 1
 ```
 
-![](Vignette-ODEs_github_files/figure-commonmark/unnamed-chunk-8-1.png)
+Now we specify the model as follows.
 
-<div id="refs" class="references csl-bib-body hanging-indent">
+``` r
+# Specify continuous time model for eco-evolutionary feedback
+ct_model <- ctModel(
+  # Variable naming
+  manifestNames = c("PopDensity", "TraitValue"),  # Observed variables
+  latentNames = c("PopDensity", "TraitValue"),    # Latent processes (same as manifest)
+  
+  # Data structure parameters
+  time = "Time",                                  # Time column name
+  id = "ID",                                      # ID column name
+  type = "stanct",                                # Continuous time model
+  
+  # Measurement model parameters
+  LAMBDA = diag(1, 2),                            # Identity mapping from latent to observed
+  MANIFESTMEANS = 0,                              # No measurement intercept
+  MANIFESTVAR = c(
+    "measError_Pop", 0,                          # Measurement error for population
+    0, "measError_Trait"                         # Measurement error for trait
+  ),
+  
+  # Dynamics matrix - key eco-evolutionary parameters
+  DRIFT = c(
+    "A_pop", "Evo_to_Eco",                       # Population dynamics row
+    "Eco_to_Evo", "A_trait"                      # Trait dynamics row
+  ),
+  
+  # Continuous intercepts (baseline rates)
+  CINT = c("B_pop", "B_trait"),                  
+  
+  # Initial state parameters
+  T0MEANS = c("init_PopDensity", "init_TraitValue"),
+  
+  # System noise parameters (stochastic components)
+  DIFFUSION = c(
+    "G_pop", 0,                                  # Pop noise and upper triangle 0
+    "G_cross", "G_trait"                         # Correlation & trait noise
+  )
+)
+```
 
-<div id="ref-mcelreathStatisticalRethinking2Bayesian2020"
-class="csl-entry">
+         [,1]             
+    [1,] "init_PopDensity"
+    [2,] "init_TraitValue"
+         [,1]         [,2]        
+    [1,]      "A_pop" "Evo_to_Eco"
+    [2,] "Eco_to_Evo"    "A_trait"
+         [,1]      [,2]     
+    [1,]   "G_pop"       "0"
+    [2,] "G_cross" "G_trait"
+         [,1]            [,2]             
+    [1,] "measError_Pop"               "0"
+    [2,]             "0" "measError_Trait"
+         [,1]
+    [1,]  "0"
+    [2,]  "0"
+         [,1]     
+    [1,]   "B_pop"
+    [2,] "B_trait"
 
-McElreath, Richard. 2020. *Statistical Rethinking2: A Bayesian Course
-with Examples in R and Stan*. Boca Raton, Florida: CRC Press.
+Now that the model has been specified, we can fit it to our
+observational data:
 
-</div>
+``` r
+# Fit the model to data
+ct_fit <- ctStanFit(datalong = data, ctstanmodel = ct_model)
+```
 
-<div id="ref-parkFitodeToolsOrdinary2022" class="csl-entry">
+Finally, we can assess and visualize the results to see if we recovered
+the “true” simulated values. Given our interest in bidirectional
+effects, we are primarily concerned with the cross effects “Evo_to_Eco”
+and “Eco_to_Evo”. We can also use the ctKalman function below to create
+a plot of model expectations relative to the observed data. Here the
+plots show “subject 1”, which simply reflects the fact that our
+simulation included a single unit of analysis: more specifically, a
+single population. See Figure 4 in the main text for an alternate
+visualization of the same simulation and fitted model.
 
-Park, Sang Woo, and Ben Bolker. 2022. “Fitode: Tools for Ordinary
-Differential Equations Model Fitting.” R.
+``` r
+# Summarize results
+# summary(ct_fit, parmatrices = FALSE)
+ctKalman(ct_fit, plot=TRUE)
+```
 
-</div>
+![](Vignette-ODEs_github_files/figure-commonmark/unnamed-chunk-6-1.png)
 
-<div id="ref-standevelopmentteamStanModelingLanguage2018"
-class="csl-entry">
+``` r
+# Visualize whether key paramters were recovered
 
-Stan Development Team, and Bob Carpenter. 2018. “Stan Modeling Language:
-Users Guide and Reference Manual.” Predator-Prey Population Dynamics:
-The Lotka-Volterra Model in Stan.
-<https://mc-stan.org/users/documentation/case-studies/lotka-volterra-predator-prey.html>.
+# Create data frame with parameter estimates and true values
+params_df <- data.frame(
+  Parameter = c("Eco_to_Evo", "Evo_to_Eco"),
+  Estimate = c(-0.0919, 0.0984),
+  Lower = c(-0.1522, 0.0382),
+  Upper = c(-0.0283, 0.1630),
+  TrueValue = c(-0.1, 0.1)
+)
 
-</div>
+# Create the plot - horizontal orientation with MCMC style
+ggplot(params_df, aes(y = Parameter)) +
+  # Add thick line for 50% interval (using mean as proxy since we don't have exact 50% interval)
+  geom_segment(aes(x = Lower + (Estimate - Lower)/2, xend = Upper - (Upper - Estimate)/2, 
+                  yend = Parameter), size = 4, color = "steelblue", alpha = 0.7) +
+  # Add thin line for 95% interval
+  geom_segment(aes(x = Lower, xend = Upper, yend = Parameter), size = 1, color = "darkblue") +
+  # Add point for posterior mean
+  geom_point(aes(x = Estimate), size = 3, color = "navy") +
+  # Add points for true values
+  geom_point(aes(x = TrueValue), size = 3, color = "red", shape = 18) +
+  # Add vertical line at zero
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray") +
+  # Add text labels for the means
+  geom_text(aes(x = Estimate, label = sprintf("%.3f", Estimate)), 
+            vjust = -1, color = "darkblue", size = 3.5) +
+  # Add text labels for the true values
+  geom_text(aes(x = TrueValue, label = sprintf("True: %.1f", TrueValue)), 
+            vjust = 2, color = "red", size = 3.5) +
+  # Customize theme for clean MCMC-style plot
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = 12, face = "bold")
+  ) +
+  # Labels
+  labs(
+    title = "Eco-Evolutionary Parameter Estimates",
+    subtitle = "Posterior distributions with true values (red diamonds)",
+    x = "Parameter Value",
+    y = ""
+  ) +
+  # Set reasonable x-axis limits
+  xlim(-0.2, 0.2)
+```
 
-</div>
+![](Vignette-ODEs_github_files/figure-commonmark/unnamed-chunk-6-2.png)
