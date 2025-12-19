@@ -21,16 +21,9 @@ View(tar_meta(targets_only = TRUE)) # simplified
 
 # Notes 
 
-# Feedbacks seen as barrier “Second, when causal relationships between the microbiome and behaviour do exist, their directionality may be hard to infer as effects in both directions, and feedback, may be expected” -- Identifying Microbiome-Mediated Behaviour in Wild Vertebrates
-
-
-
-
-
-
-
-
-
+# Feedbacks seen as barrier “Second, when causal relationships between the microbiome and behaviour do exist, 
+# their directionality may be hard to infer as effects in both directions, and feedback, may be expected” --
+# Identifying Microbiome-Mediated Behaviour in Wild Vertebrates
 
 
 
