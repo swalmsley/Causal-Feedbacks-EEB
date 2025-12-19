@@ -14,7 +14,7 @@ save_figure <- function(path, w, h, call) {
 density_plot <- function(fit, true_effect, var_name, var_label, xloc, my_cols, colNum) {
   
   g <- ggplot(data = as_draws_df(fit), aes(x=get(var_name))) + 
-    geom_density(color='white', fill=my_cols[colNum], alpha=0.9) +
+    geom_density(color=my_cols[colNum], fill=my_cols[colNum], alpha=0.75) +
     xlim(-2.5,2.5)+
     geom_vline(xintercept=true_effect,linetype='dashed',linewidth=0.5)+
     labs(x=paste(var_label),y='Posterior density')+
@@ -301,9 +301,32 @@ figure_2 <- function(){
 
 
 
-# Simulate, model, and visualize eco-evolutionary feedback ----------------
-eco_evo_sim <- function() {
+# Portion of panel model figure -------------------------------------------
+panel_model_figure <- function(fit, pf1, pf2) {
+  
+  my_cols <- c('steelblue','red')
+  
+  p2 <- density_plot(fit, 0.3, 'b_b_a_1', 'Effect of boldness on size', 1.5, my_cols, 2) + xlim(-0.6,0.6)+
+    geom_density(inherit.aes=FALSE,data=as_draws_df(pf2),aes(x=get('b_a')),color='grey50',fill='grey50',alpha=0.35)+
+    theme(axis.title = element_text(size=8))
+  
+  p3 <- density_plot(fit, -0.3, 'b_a_b_1', 'Effect of size on boldness', 1.5, my_cols, 1) + xlim(-0.6,0.6)+
+    geom_density(inherit.aes=FALSE,data=as_draws_df(pf1),aes(x=get('b_b')),color='grey50',fill='grey50',alpha=0.35)+
+    theme(axis.title = element_text(size=8))
+  
+  plot <- (p2/p3)
+  
+  return(plot)
+  
+}
+# fit <- tar_read(pfit)
+# pf1 <- tar_read(panel_regular_1)
+# pf2 <- tar_read(panel_regular_2)
 
+
+# Simulate and model eco-evo feedback (continuous time example) -----------
+eco_evo_sim <- function() {
+  
   # Set up time points
   times <- seq(from=0, to=200, by=1)
   Nobs <- length(times)
@@ -418,7 +441,16 @@ eco_evo_sim <- function() {
   )
   
   # Fit the model to data
-  ct_fit <- ctStanFit(datalong = data, ctstanmodel = ct_model)
+  ct_fit <- ctStanFit(datalong = data, ctstanmodel = ct_model, optimize=FALSE, priors=TRUE)
+  
+  return(ct_fit)
+  
+}
+
+
+
+# Plot eco-evo dynamics (continuous time example) -------------------------
+plot_dynamics <- function(ct_fit) {
   
   # Summarize results
   summary(ct_fit, parmatrices = FALSE)
@@ -429,44 +461,138 @@ eco_evo_sim <- function() {
                           errorvec='yprior',          # Include uncertainty estimates 
                           plot=FALSE)                 # Don't plot yet
   
-  # Create a custom plot with correct column names
-  eco_evo_plot <- ggplot() +
-    # Add raw data points (observational data)
-    geom_point(data=kalman_data[kalman_data$Element == 'y' & !is.na(kalman_data$value), ], 
-               aes(x=Time, y=value, color=Row), 
-               alpha=0.5, size=1.5) +
+    # Create a custom plot with correct column names
+    eco_evo_plot <- ggplot() +
+      # Add raw data points (observational data)
+      geom_point(data=kalman_data[kalman_data$Element == 'y' & !is.na(kalman_data$value), ],
+                 aes(x=Time, y=value, color=Row),
+                 alpha=0.5, size=1.5) +
+      
+      # Add model prediction lines
+      geom_line(data=kalman_data[kalman_data$Element == 'yprior', ],
+                aes(x=Time, y=value, color=Row),
+                size=1) +
+      
+      # Optional: Add uncertainty ribbons with less opacity
+      geom_ribbon(data=kalman_data[kalman_data$Element == 'yprior', ],
+                  aes(x=Time, y=value, ymin=value-sd, ymax=value+sd, fill=Row),
+                  alpha=0.1, linetype=0) +
+      
+      # Set custom colors
+      scale_color_manual(values=c("PopDensity"="steelblue", "TraitValue"="red")) +
+      scale_fill_manual(values=c("PopDensity"="steelblue", "TraitValue"="red")) +
+      
+      # Labels and theming
+      labs(title="Eco-evolutionary dynamics",
+           x="Time", y="Value") +
+      annotate('text', 28, -4.5, label='Trait value', color='red')+
+      annotate('text', 20, 3, label='Population density', color='steelblue')+
+      theme_classic() +
+      ylim(-6, 6) +
+      theme(legend.position="none",
+            legend.title=element_blank())
     
-    # Add model prediction lines
-    geom_line(data=kalman_data[kalman_data$Element == 'yprior', ], 
-              aes(x=Time, y=value, color=Row), 
-              size=1) +
+    eco_evo_plot
     
-    # Optional: Add uncertainty ribbons with less opacity  
-    geom_ribbon(data=kalman_data[kalman_data$Element == 'yprior', ], 
-                aes(x=Time, y=value, ymin=value-sd, ymax=value+sd, fill=Row), 
-                alpha=0.1, linetype=0) +
+    # Display the plot
+    return(eco_evo_plot)
     
-    # Set custom colors
-    scale_color_manual(values=c("PopDensity"="steelblue", "TraitValue"="red")) +
-    scale_fill_manual(values=c("PopDensity"="steelblue", "TraitValue"="red")) +
-    
-    # Labels and theming
-    labs(title="Eco-evolutionary dynamics",
-         x="Time", y="Value") +
-    annotate('text', 28, -4.5, label='Trait value', color='red')+
-    annotate('text', 20, 3, label='Population density', color='steelblue')+
-    theme_classic() +
-    ylim(-6, 6) +
-    theme(legend.position="none", 
-          legend.title=element_blank())
+  }
+
+
+
+# Plot eco-evo effects (continuous time example) --------------------------
+plot_effects <- function(ct_fit) {
   
-  eco_evo_plot
+  # extract original data from model
+  data <- ct_fit$standata$Y
   
-  # Display the plot
-  return(eco_evo_plot)
+  ## Extract posteriors for ctsem model.
+  post <- ctExtract(ct_fit)
+  drift_samples <- post$pop_DRIFT   # posterior samples: draws × 2 × 2
+  
+  ct_Eco_to_Evo <- drift_samples[, 2, 1]  # Pop → Trait
+  ct_Evo_to_Eco <- drift_samples[, 1, 2]  # Trait → Pop
+  
+  # Weakly informative priors
+  reg_prior <- prior(normal(0, 1), class = "b") +
+    prior(exponential(1), class = "sigma")
+  
+  # Trait ~ Pop
+  m_trait_on_pop <- brm(
+    TraitValue ~ PopDensity,
+    data   = data,
+    family = gaussian(),
+    prior  = reg_prior,
+    chains = 2, iter = 1000, cores = 2,
+    refresh = 0
+  )
+  
+  # Pop ~ Trait
+  m_pop_on_trait <- brm(
+    PopDensity ~ TraitValue,
+    data   = data,
+    family = gaussian(),
+    prior  = reg_prior,
+    chains = 2, iter = 1000, cores = 2,
+    refresh = 0
+  )
+  
+  # Posterior draws for slopes
+  draws_trait_on_pop  <- as.data.frame(m_trait_on_pop)
+  draws_pop_on_trait  <- as.data.frame(m_pop_on_trait)
+  
+  reg_Eco_to_Evo <- draws_trait_on_pop$`b_PopDensity`   # Pop -> Trait
+  reg_Evo_to_Eco <- draws_pop_on_trait$`b_TraitValue`   # Trait -> Pop
+  
+  post_df <- rbind(
+    data.frame(Value = ct_Eco_to_Evo,  Effect = "Eco → Evo", Method = "ctsem"),
+    data.frame(Value = reg_Eco_to_Evo, Effect = "Eco → Evo", Method = "regression"),
+    data.frame(Value = ct_Evo_to_Eco,  Effect = "Evo → Eco", Method = "ctsem"),
+    data.frame(Value = reg_Evo_to_Eco, Effect = "Evo → Eco", Method = "regression")
+  )
+  
+  Eco_to_Evo <- -0.1
+  Evo_to_Eco <- 0.1
+  
+  truth_df <- data.table(
+    Effect = c("Eco → Evo", "Evo → Eco"),
+    True   = c(Eco_to_Evo,   Evo_to_Eco)
+  )
+  
+  post_df$Method <- factor(post_df$Method, levels = c('regression', 'ctsem'))
+  
+  post_df <- data.table(post_df)
+  
+  g1 <- ggplot(post_df[Effect=="Eco → Evo",,], aes(x = Value, colour = Method, fill = Method)) +
+    geom_density(alpha = 0.3, linewidth = 0.8, adjust=2) +
+    geom_vline(data = truth_df[Effect=="Eco → Evo",,], aes(xintercept = True), 
+               linetype = "dashed", colour = "black") +
+    # facet_wrap(~ Effect, nrow = 2) +
+    labs(x = "Effect", y = "Density of posterior")+
+    theme_classic(base_size = 12) +
+    scale_fill_manual(values=c('grey90', 'black'))+
+    scale_color_manual(values=c('grey50','black'))+
+    xlim(-0.25, 0.25)+
+    theme(legend.position = "none",
+          plot.title = element_text(face = "bold"))
+  
+  g2 <- ggplot(post_df[Effect=="Evo → Eco",,], aes(x = Value, colour = Method, fill = Method)) +
+    geom_density(alpha = 0.3, linewidth = 0.8, adjust=2) +
+    geom_vline(data = truth_df[Effect=="Evo → Eco",,], aes(xintercept = True), 
+               linetype = "dashed", colour = "black") +
+    # facet_wrap(~ Effect, nrow = 2) +
+    labs(x = "Effect", y = "Density of posterior")+
+    theme_classic(base_size = 12) +
+    scale_fill_manual(values=c('grey90', 'black'))+
+    scale_color_manual(values=c('grey60','black'))+
+    xlim(-0.25, 0.25)+
+    theme(legend.position = "none",
+          plot.title = element_text(face = "bold"))
+  
+  return(g1 / g2)
   
 }
-
 
 
 

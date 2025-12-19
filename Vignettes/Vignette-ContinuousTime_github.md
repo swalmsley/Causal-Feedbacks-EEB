@@ -1,4 +1,4 @@
-# Example for Figure 2. Reverse causation in simple regression models
+# Method 2. Continuous time method for identifying bidirectional effects
 Sam Walmsley, Suchinta Arif, Hal Whitehead
 
 This example demonstrates how a model specified with ordinary

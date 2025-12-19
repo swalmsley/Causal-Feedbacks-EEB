@@ -1,4 +1,4 @@
-# Example for Figure 2. Reverse causation in simple regression models
+# Method 3. Instrumental variable analysis
 Sam Walmsley, Suchinta Arif, Hal Whitehead
 
 This example shows how reciprocal effects between traits can be

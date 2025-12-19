@@ -1,4 +1,4 @@
-# Example for Figure 2. Reverse causation in simple regression models
+# Method 1. Lagged effects in temporally explicit causal models
 Sam Walmsley, Suchinta Arif, Hal Whitehead
 
 This example shows how reciprocal effects between traits can be
@@ -160,21 +160,21 @@ summary(m)
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.07      0.08    -0.09     0.23 1.00     8544     5307
-    b_b_1           0.30      0.04     0.22     0.39 1.00     8483     6003
-    b_a_1           0.98      0.05     0.89     1.07 1.00     9455     5474
-    a_Intercept     0.04      0.05    -0.06     0.13 1.00     8519     5531
-    a_a_1           0.28      0.03     0.22     0.34 1.00     8376     5943
-    a_b_1          -0.94      0.03    -1.00    -0.89 1.00     9678     5408
+    b_Intercept     0.06      0.08    -0.10     0.22 1.00     9498     6042
+    b_b_1           0.31      0.04     0.22     0.40 1.00     9681     5934
+    b_a_1           0.98      0.05     0.89     1.08 1.00    10207     5644
+    a_Intercept     0.04      0.05    -0.06     0.14 1.00     8636     6006
+    a_a_1           0.28      0.03     0.22     0.34 1.00     9133     5497
+    a_b_1          -0.94      0.03    -1.00    -0.89 1.00    10094     5523
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.34      0.07     0.24     0.50 1.00     7857     5844
-    sigma_a     0.21      0.04     0.15     0.32 1.00     6762     5047
+    sigma_b     0.34      0.07     0.23     0.50 1.00     8169     5635
+    sigma_a     0.21      0.04     0.15     0.31 1.00     8150     5524
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(b,a)     0.04      0.24    -0.43     0.49 1.00     7048     5161
+    rescor(b,a)     0.04      0.24    -0.42     0.50 1.00     7808     5647
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -323,21 +323,21 @@ summary(m)
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.70      0.34     0.02     1.36 1.00     3340     4023
-    b_b_1           0.34      0.35    -0.34     1.03 1.00     2417     3453
-    b_a_1           0.57      0.33    -0.08     1.22 1.00     2543     3875
-    a_Intercept     0.35      0.41    -0.47     1.14 1.00     3410     4024
-    a_a_1           0.78      0.39     0.01     1.56 1.00     2552     3839
-    a_b_1           0.21      0.42    -0.61     1.03 1.00     2448     3666
+    b_Intercept     0.70      0.34    -0.01     1.36 1.00     3763     4491
+    b_b_1           0.34      0.36    -0.34     1.05 1.00     2402     3257
+    b_a_1           0.57      0.33    -0.10     1.22 1.00     2474     3307
+    a_Intercept     0.34      0.41    -0.49     1.13 1.00     4121     4524
+    a_a_1           0.77      0.39    -0.01     1.55 1.00     2633     3378
+    a_b_1           0.22      0.42    -0.60     1.05 1.00     2567     3349
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.66      0.12     0.48     0.94 1.00     3283     3518
-    sigma_a     0.81      0.14     0.59     1.13 1.00     3438     4009
+    sigma_b     0.66      0.11     0.48     0.92 1.00     3639     4298
+    sigma_a     0.81      0.14     0.59     1.13 1.00     3744     3743
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(b,a)     0.83      0.09     0.61     0.94 1.00     3419     4360
+    rescor(b,a)     0.82      0.09     0.60     0.94 1.00     3340     4079
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -388,23 +388,23 @@ summary(m)
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     0.17      0.19    -0.19     0.56 1.00     3842     3931
-    b_b_1           0.36      0.20    -0.04     0.74 1.00     3450     4016
-    b_a_1          -0.02      0.21    -0.42     0.40 1.00     3311     3638
-    b_c_1           1.73      0.22     1.25     2.15 1.00     4393     3717
-    a_Intercept    -0.27      0.25    -0.74     0.24 1.00     3904     4741
-    a_a_1           0.09      0.27    -0.42     0.65 1.00     3415     3887
-    a_b_1           0.22      0.26    -0.31     0.73 1.00     3667     4071
-    a_c_1           2.03      0.28     1.43     2.55 1.00     4663     4598
+    b_Intercept     0.16      0.19    -0.22     0.54 1.00     4137     4760
+    b_b_1           0.37      0.20    -0.02     0.76 1.00     3606     4266
+    b_a_1          -0.04      0.20    -0.43     0.37 1.00     3350     3704
+    b_c_1           1.73      0.22     1.28     2.14 1.00     4056     4602
+    a_Intercept    -0.27      0.24    -0.74     0.23 1.00     4877     5080
+    a_a_1           0.09      0.26    -0.40     0.62 1.00     3669     4164
+    a_b_1           0.23      0.25    -0.26     0.70 1.00     3928     4394
+    a_c_1           2.03      0.28     1.45     2.55 1.00     4852     4665
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.29      0.06     0.20     0.43 1.00     4737     4609
-    sigma_a     0.37      0.08     0.26     0.55 1.00     4302     5132
+    sigma_b     0.29      0.06     0.20     0.43 1.00     4724     4999
+    sigma_a     0.37      0.08     0.26     0.55 1.00     4232     4309
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(b,a)     0.18      0.24    -0.31     0.61 1.00     4457     5111
+    rescor(b,a)     0.18      0.24    -0.30     0.61 1.00     3994     4416
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -537,21 +537,21 @@ summary(m)
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept     1.01      0.34     0.32     1.65 1.00     2128     2572
-    b_b_1           0.78      0.11     0.57     1.01 1.00     2031     2434
-    b_a_1           0.30      0.13     0.06     0.56 1.00     2815     3406
-    a_Intercept     1.00      0.34     0.31     1.64 1.00     2007     2631
-    a_a_1           0.33      0.13     0.08     0.59 1.00     2814     2961
-    a_b_1          -0.45      0.11    -0.67    -0.22 1.00     1974     2421
+    b_Intercept     0.99      0.34     0.30     1.65 1.00     2161     3132
+    b_b_1           0.79      0.11     0.57     1.02 1.00     1997     3182
+    b_a_1           0.31      0.13     0.05     0.56 1.00     2787     3822
+    a_Intercept     0.98      0.34     0.29     1.63 1.00     2133     3222
+    a_a_1           0.33      0.13     0.08     0.59 1.00     2914     3944
+    a_b_1          -0.45      0.11    -0.66    -0.22 1.00     1986     2880
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.34      0.06     0.24     0.49 1.00     2918     3311
-    sigma_a     0.34      0.06     0.24     0.49 1.00     2847     3343
+    sigma_b     0.34      0.06     0.24     0.49 1.00     3020     3869
+    sigma_a     0.34      0.06     0.24     0.49 1.00     3273     4324
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(b,a)     0.83      0.09     0.62     0.94 1.00     2658     4001
+    rescor(b,a)     0.84      0.08     0.64     0.94 1.00     3186     4144
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -605,23 +605,23 @@ summary(m)
 
     Population-Level Effects: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    b_Intercept    -0.00      0.19    -0.35     0.38 1.00     4534     4680
-    b_b_1           0.25      0.07     0.12     0.39 1.00     4067     4128
-    b_a_1           0.26      0.05     0.16     0.35 1.00     5650     5103
-    b_c_1           1.99      0.21     1.54     2.38 1.00     3538     3944
-    a_Intercept     0.05      0.23    -0.38     0.54 1.00     4947     4522
-    a_a_1           0.28      0.06     0.17     0.40 1.00     5687     5015
-    a_b_1          -0.96      0.08    -1.12    -0.78 1.00     4853     4094
-    a_c_1           1.88      0.26     1.33     2.35 1.00     3876     3928
+    b_Intercept     0.00      0.19    -0.36     0.39 1.00     4562     4466
+    b_b_1           0.25      0.07     0.12     0.39 1.00     3510     3951
+    b_a_1           0.25      0.05     0.16     0.35 1.00     4988     4394
+    b_c_1           1.98      0.21     1.55     2.39 1.00     3228     4233
+    a_Intercept     0.05      0.23    -0.40     0.51 1.00     4494     4799
+    a_a_1           0.28      0.06     0.17     0.40 1.00     4857     5037
+    a_b_1          -0.96      0.08    -1.12    -0.78 1.00     3694     4445
+    a_c_1           1.88      0.26     1.34     2.37 1.00     3301     3958
 
     Family Specific Parameters: 
             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    sigma_b     0.12      0.03     0.09     0.18 1.00     4982     4344
-    sigma_a     0.15      0.03     0.10     0.23 1.00     4526     4572
+    sigma_b     0.12      0.03     0.09     0.19 1.00     4950     4819
+    sigma_a     0.15      0.03     0.10     0.23 1.00     4526     5215
 
     Residual Correlations: 
                 Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    rescor(b,a)     0.09      0.24    -0.39     0.56 1.00     4949     4986
+    rescor(b,a)     0.10      0.25    -0.39     0.56 1.00     4327     4826
 
     Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     and Tail_ESS are effective sample size measures, and Rhat is the potential
